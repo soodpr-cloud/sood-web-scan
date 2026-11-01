@@ -1,0 +1,22 @@
+<!doctype html><meta charset="utf-8"><title>indexer harness</title>
+<!-- หน้าเปล่าที่ใช้ face-api.js + โมเดลชุดเดียวกับหน้าเว็บ เพื่อให้ได้เวกเตอร์ใบหน้าที่เทียบกันได้ตรงกัน (ห้ามเปลี่ยนค่า inputSize/scoreThreshold ให้ต่างจาก index.html) -->
+<script src="../face-api.js"></script>
+<script>
+window.ready=(async()=>{
+  await faceapi.tf.ready();
+  await Promise.all([
+    faceapi.nets.tinyFaceDetector.loadFromUri('../models'),
+    faceapi.nets.faceLandmark68TinyNet.loadFromUri('../models'),
+    faceapi.nets.faceRecognitionNet.loadFromUri('../models')
+  ]);
+  return faceapi.tf.getBackend();
+})();
+async function scan(b64){
+  const blob=await (await fetch('data:image/jpeg;base64,'+b64)).blob();
+  const bmp=await createImageBitmap(blob);
+  const c=document.createElement('canvas'); c.width=bmp.width; c.height=bmp.height;
+  c.getContext('2d').drawImage(bmp,0,0); bmp.close&&bmp.close();
+  const det=await faceapi.detectAllFaces(c,new faceapi.TinyFaceDetectorOptions({inputSize:608,scoreThreshold:0.4})).withFaceLandmarks(true).withFaceDescriptors();
+  return det.map(d=>Array.from(d.descriptor,x=>Math.round(x*1e4)/1e4));
+}
+</script>
