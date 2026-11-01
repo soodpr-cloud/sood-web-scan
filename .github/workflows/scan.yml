@@ -1,0 +1,38 @@
+name: สแกนรูปใหม่ (อัตโนมัติ)
+
+on:
+  schedule:
+    - cron: '0 19 * * *'   # 19:00 UTC = 02:00 เวลาไทย ทุกคืน
+  workflow_dispatch:        # กดรันเองได้จากแท็บ Actions
+
+concurrency:
+  group: scan-faces
+  cancel-in-progress: false
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: ติดตั้งเครื่องมือ
+        run: |
+          pip install -q playwright pillow pillow-heif google-api-python-client google-auth
+          playwright install --with-deps chromium
+
+      - name: เตรียมกุญแจ Google
+        env:
+          GOOGLE_CREDS: ${{ secrets.GOOGLE_CREDENTIALS_JSON }}
+        run: printf '%s' "$GOOGLE_CREDS" > "$RUNNER_TEMP/google-creds.json"
+
+      - name: สแกนเฉพาะรูปใหม่
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/google-creds.json
+          ROOT_FOLDER_ID: ${{ secrets.ROOT_FOLDER_ID }}
+          INDEX_FOLDER_ID: ${{ secrets.INDEX_FOLDER_ID }}
+        run: python tools/indexer.py --source drive --root "$ROOT_FOLDER_ID" --index-folder "$INDEX_FOLDER_ID" --site .
