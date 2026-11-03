@@ -1,0 +1,50 @@
+name: scan-faces-arcface
+
+on:
+  schedule:
+    - cron: '30 19 * * *'   # 02:30 น. เวลาไทย (19:30 UTC ของวันก่อนหน้า)
+  workflow_dispatch:         # กดรันเองได้จากแท็บ Actions
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 340
+    env:
+      # ID โฟลเดอร์ปี/ราก ของรูป (หลายอันคั่นด้วย ,)
+      ROOT_IDS: '1oe2ESmRQamjpUFlU-IgSMA6kx-GqJY2_'
+      # ID โฟลเดอร์ _faceindex_arc (ที่เซลล์ 4 ใน Colab พิมพ์ให้)  <<< ต้องแก้
+      INDEX_FOLDER_ID: 'ใส่ID_โฟลเดอร์_faceindex_arc_ตรงนี้'
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: แคชโมเดล InsightFace
+        uses: actions/cache@v4
+        with:
+          path: ~/.insightface
+          key: insightface-buffalo-l-s-v1
+
+      - name: ติดตั้งไลบรารี
+        run: |
+          python -m pip install --upgrade pip
+          pip install "numpy<2" cython
+          pip install insightface onnxruntime pillow pillow-heif google-api-python-client google-auth
+
+      - name: เตรียมสิทธิ์เข้า Google Drive
+        # ใช้ secret ตัวเดิมที่เวิร์กโฟลว์เก่าใช้อยู่ (ไฟล์ JSON ของ service account หรือของบัญชี)
+        # ถ้าชื่อ secret ของคุณไม่ใช่ GOOGLE_CREDENTIALS ให้เปลี่ยนเฉพาะชื่อในบรรทัด env ด้านล่าง
+        env:
+          GDRIVE_JSON: ${{ secrets.GOOGLE_CREDENTIALS }}
+        run: |
+          printf '%s' "$GDRIVE_JSON" > "$RUNNER_TEMP/gdrive.json"
+          echo "GOOGLE_APPLICATION_CREDENTIALS=$RUNNER_TEMP/gdrive.json" >> "$GITHUB_ENV"
+
+      - name: สแกนรูปใหม่
+        run: |
+          python tools/indexer_arc.py \
+            --root "$ROOT_IDS" \
+            --index-folder "$INDEX_FOLDER_ID" \
+            --max-minutes 320
