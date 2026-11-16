@@ -37,7 +37,8 @@ jobs:
         # ใช้ secret ตัวเดิมที่เวิร์กโฟลว์เก่าใช้อยู่ (ไฟล์ JSON ของ service account หรือของบัญชี)
         # ถ้าชื่อ secret ของคุณไม่ใช่ GOOGLE_CREDENTIALS ให้เปลี่ยนเฉพาะชื่อในบรรทัด env ด้านล่าง
         env:
-          GDRIVE_JSON: ${{ secrets.GOOGLE_CREDENTIALS_JSON }}        run: |
+          GDRIVE_JSON: ${{ secrets.GOOGLE_CREDENTIALS_JSON }}        
+          run: |
           printf '%s' "$GDRIVE_JSON" > "$RUNNER_TEMP/gdrive.json"
           echo "GOOGLE_APPLICATION_CREDENTIALS=$RUNNER_TEMP/gdrive.json" >> "$GITHUB_ENV"
 
